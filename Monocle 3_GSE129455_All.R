@@ -7,27 +7,27 @@
   memory.limit(150000)
 
 #### Version information ####
-  # platform       x86_64-w64-mingw32          
-  # arch           x86_64                      
-  # os             mingw32                     
-  # system         x86_64, mingw32             
-  # status                                     
-  # major          3                           
-  # minor          6.3                         
-  # year           2020                        
-  # month          02                          
-  # day            29                          
-  # svn rev        77875                       
-  # language       R                           
+  # platform       x86_64-w64-mingw32
+  # arch           x86_64
+  # os             mingw32
+  # system         x86_64, mingw32
+  # status
+  # major          3
+  # minor          6.3
+  # year           2020
+  # month          02
+  # day            29
+  # svn rev        77875
+  # language       R
   # version.string R version 3.6.3 (2020-02-29)
-  # nickname       Holding the Windsock      
+  # nickname       Holding the Windsock
 
 #### Load Packages ####
   library(monocle3)
   library(ggplot2)
   library(magrittr) # need to run every time you start R and want to use %>%
   library(dplyr)
-  
+
   library(reticulate)
   library(Matrix)
   # reticulate::py_install("louvain")
@@ -46,61 +46,61 @@
   dir.create(paste0(FilesName,RVersion))
 
   # Build # expression_matrix
-  data <- read.csv(paste0(FilesName,"GSE129455_All_Viable_expression.csv"),   
-                   header=T,          
-                   sep=",")           
-  
-  row.names(data) <- data[,1]
-  
-  expression_matrix2 <- data[1:length(data[,1]), 2:length(data[1,])]
-  ession_matrix3 <- as(as.matrix(expression_matrix2), "dgCMatrix")
+  data <- read.csv(paste0(FilesName,"GSE129455_All_Viable_expression.csv"),
+                   header=T,
+                   sep=",")
 
-#### Build monocle obj ####  
+  row.names(data) <- data[,1]
+
+  expression_matrix2 <- data[1:length(data[,1]), 2:length(data[1,])]
+  expression_matrix2 <- as(as.matrix(expression_matrix2), "dgCMatrix")
+
+#### Build monocle obj ####
   # Build # gene_metadata
   dataG <- as.data.frame(data[,1])
   row.names(dataG) <- data[,1]
   colnames(dataG) <- c("gene_short_name")
-  
+
   # Build # cell_metadata
   dataC2 <- as.data.frame(colnames(expression_matrix2))
   row.names(dataC2) <- dataC2[,1]
   colnames(dataC2) <- c("samples")
   dataC2$id  <- 1:nrow(dataC2)
-  
+
   ## Make the CDS object
   cell_metadata2 <- dataC2
   gene_annotation2 <- dataG
-  
-  cds <- new_cell_data_set(expression_matrix3,
+
+  cds <- new_cell_data_set(expression_matrix2,
                            cell_metadata = cell_metadata2,
                            gene_metadata = gene_annotation2)
 
 # cds@rowRanges@elementMetadata@listData$gene_short_name <- toupper(cds@rowRanges@elementMetadata@listData$gene_short_name)
 
-#### Gene name conversion #### 
-  libreNameEnsembl <- as.matrix(cds@rowRanges@elementMetadata@listData$gene_short_name)
-  GeneNameSymbol <- AnnotationDbi::select(org.Mm.eg.db, keys=GeneNameEnsembl, columns='SYMBOL', keytype='ENSEMBL')
-  
+#### Gene name conversion ####
+  GeneNameEnsembl <- as.matrix(cds@rowRanges@elementMetadata@listData$gene_short_name)
+  GeneNameSymbol <- AnnotationDbi::select(org.Mm.eg.db, keys = GeneNameEnsembl, columns='SYMBOL', keytype='ENSEMBL')
+
   ## Clear the repeat
   # GeneNameSymbol2=as.matrix(GeneNameSymbol[unique(GeneNameSymbol[,1]),]) #error
   GeneNameSymbol2=GeneNameSymbol[!duplicated(GeneNameSymbol$ENSEMBL),]
-  
+
   ## Number for null
-  GNS2_NA <- which(is.na(GeneNameSymbol2[,2])) 
+  GNS2_NA <- which(is.na(GeneNameSymbol2[,2]))
   GeneNameSymbol2[GNS2_NA,2] <- GeneNameSymbol2[GNS2_NA,1]
-  
+
   cds@rowRanges@elementMetadata@listData$gene_ENSEMBL <- cds@rowRanges@elementMetadata@listData$gene_short_name
   cds@rowRanges@elementMetadata@listData$gene_short_name <- GeneNameSymbol2[,2]
 
 
-  
-#### Main gene #### 
+
+#### Main gene ####
   NSUN_Main = c("Nsun1","Nop2","Nsun2","Nsun3","Nsun4","Nsun5","Nsun6","Nsun7")
   iCAF_Main = c("Clec3b","Col14a1","Has1","Il6")
   apCAF_Main = c("H2-Ab1","Cd74","Saa3","Slpi")
   myCAF_Main = c("Tagln","Thy1","Col12a1","Thbs2")
 
-#### Marker of cell type #### 
+#### Marker of cell type ####
   All_Macrophages_Main = c("Apoe","Saa3","C1qc","C1qa","C1qb","Lyz2")
   All_Myeloid_Main = c("Retnla","Ear2","Lyz1","ENSMUSG00000098178","Crip1","Lpl")
   All_BCells_Main = c("Cd79a","Ly6d","Ms4a1","Cd79b","Ebf1","H2-DMb2")
@@ -117,25 +117,25 @@
 
 #### Pre-process the data ####
   cds = preprocess_cds(cds, num_dim = 100)
-  
-  png(paste0(FilesName,RVersion,"/",RVersion,"_","PCA.png"), width = 640, height = 360) 
-    plot_pc_variance_explained(cds)
-  
-  dev.off() 
 
-  
+  png(paste0(FilesName,RVersion,"/",RVersion,"_","PCA.png"), width = 640, height = 360)
+    plot_pc_variance_explained(cds)
+
+  dev.off()
+
+
 #### tSNE ####
   cds <- reduce_dimension(cds,reduction_method = c( "tSNE") , perplexity = 60)
-  
+
   png(paste0(FilesName,RVersion,"/",RVersion,"_","tSNE.png"), width = 640, height = 360) # ?]?w???X????
   plot_cells(cds,reduction_method = c( "tSNE"))
-  dev.off() 
-  
+  dev.off()
+
   # plot_cells(cds, genes=Main)
   plot_cells(cds, genes=iCAF_Main,reduction_method = c( "tSNE"))
   plot_cells(cds, genes=apCAF_Main,reduction_method = c( "tSNE"))
   plot_cells(cds, genes=myCAF_Main,reduction_method = c( "tSNE"))
-  
+
   mypalette <- colorRampPalette(c("white" , "red"))
 
   # http://r-statistics.co/Complete-Ggplot2-Tutorial-Part2-Customizing-Theme-With-R-Code.html
@@ -145,7 +145,7 @@
   # http://www.sthda.com/english/wiki/ggplot2-title-main-axis-and-legend-titles
   # https://bookdown.org/asmundhreinn/r4ds-master/graphics-for-communication.html
   # https://gist.github.com/jrnold/79d76e927386298688c9
-  
+
 
   # Macrophages
   plot_cells(cds, genes=All_Macrophages_Main,reduction_method = c( "tSNE"),cell_size = 1,label_cell_groups = FALSE)+
@@ -158,7 +158,7 @@
           legend.text = element_text(colour="black", size=12,face="bold"),
           aspect.ratio=1  #square plot
     )+labs(title="Macrophages")+ labs(fill = "log10(Exp)")
-  
+
   # Myeloid
   plot_cells(cds, genes=All_Myeloid_Main,reduction_method = c( "tSNE"),cell_size = 1,label_cell_groups = FALSE)+
     theme(axis.text.x = element_text(face="bold",  size=14),
@@ -170,7 +170,7 @@
           legend.text = element_text(colour="black", size=12,face="bold"),
           aspect.ratio=1  #square plot
     )+labs(title="Myeloid")+ labs(fill = "log10(Exp)")
-  
+
   # B Cells
   plot_cells(cds, genes=All_BCells_Main,reduction_method = c( "tSNE"),cell_size = 1,label_cell_groups = FALSE)+
     theme(axis.text.x = element_text(face="bold",  size=14),
@@ -182,7 +182,7 @@
           legend.text = element_text(colour="black", size=12,face="bold"),
           aspect.ratio=1  #square plot
     )+labs(title="B Cells")+ labs(fill = "log10(Exp)")
-  
+
   # Neutrophils
   plot_cells(cds, genes=All_Neutrophils_Main,reduction_method = c( "tSNE"),cell_size = 1,label_cell_groups = FALSE)+
     theme(axis.text.x = element_text(face="bold",  size=12),
@@ -194,7 +194,7 @@
           legend.text = element_text(colour="black", size=12,face="bold"),
           aspect.ratio=1  #square plot
     )+labs(title="Neutrophils")+ labs(fill = "log10(Exp)")
-  
+
   # Fibroblasts
   plot_cells(cds, genes=All_Fibroblasts,reduction_method = c( "tSNE"),cell_size = 1,label_cell_groups = FALSE)+
     theme(axis.text.x = element_text(face="bold",  size=12),
@@ -206,7 +206,7 @@
           legend.text = element_text(colour="black", size=12,face="bold"),
           aspect.ratio=1  #square plot
     )+labs(title="Fibroblasts")+ labs(fill = "log10(Exp)")
-  
+
   # T and NK Cells
   plot_cells(cds, genes= All_TandNKCells,reduction_method = c( "tSNE"),cell_size = 1,label_cell_groups = FALSE)+
     theme(axis.text.x = element_text(face="bold",  size=12),
@@ -218,8 +218,8 @@
           legend.text = element_text(colour="black", size=12,face="bold"),
           aspect.ratio=1  #square plot
     )+labs(title="T and NK Cells")+ labs(fill = "log10(Exp)")
-  
-  # Ductal Cells 
+
+  # Ductal Cells
   plot_cells(cds, genes= All_Ductal_Main,reduction_method = c( "tSNE"),cell_size = 1,label_cell_groups = FALSE)+
     theme(axis.text.x = element_text(face="bold",  size=12),
           axis.text.y = element_text(face="bold",size=12),
@@ -230,8 +230,8 @@
           legend.text = element_text(colour="black", size=12,face="bold"),
           aspect.ratio=1  #square plot
     )+labs(title="Ductal Cells ")+ labs(fill = "log10(Exp)")
-  
-  
+
+
   # Endothelial Cells
   plot_cells(cds, genes= All_Endothelial_Main,reduction_method = c( "tSNE"),cell_size = 1,label_cell_groups = FALSE)+
     theme(axis.text.x = element_text(face="bold",  size=12),
@@ -243,7 +243,7 @@
           legend.text = element_text(colour="black", size=12,face="bold"),
           aspect.ratio=1  #square plot
     )+labs(title="Endothelial Cells")+ labs(fill = "log10(Exp)")
-  
+
   # Dendritic Cells
   plot_cells(cds, genes= All_Dendritic_Main,reduction_method = c( "tSNE"),cell_size = 1,label_cell_groups = FALSE)+
     theme(axis.text.x = element_text(face="bold",  size=12),
@@ -255,7 +255,7 @@
           legend.text = element_text(colour="black", size=12,face="bold"),
           aspect.ratio=1  #square plot
     )+labs(title="Dendritic Cells")+ labs(fill = "log10(Exp)")
-  
+
   # Acinar Cells
   plot_cells(cds, genes= All_Acinar_Main,reduction_method = c( "tSNE"),cell_size = 1,label_cell_groups = FALSE)+
     theme(axis.text.x = element_text(face="bold",  size=12),
@@ -267,7 +267,7 @@
           legend.text = element_text(colour="black", size=12,face="bold"),
           aspect.ratio=1  #square plot
     )+labs(title="Acinar Cells")+ labs(fill = "log10(Exp)")
-  
+
   # Perivascular Cells
   plot_cells(cds, genes= All_Perivascular_Main,reduction_method = c( "tSNE"),cell_size = 1,label_cell_groups = FALSE)+
     theme(axis.text.x = element_text(face="bold",  size=12),
@@ -279,7 +279,7 @@
           legend.text = element_text(colour="black", size=12,face="bold"),
           aspect.ratio=1  #square plot
     )+labs(title="Perivascular Cells")+ labs(fill = "log10(Exp)")
-  
+
   # EMT-like Cells
   plot_cells(cds, genes= All_EMTlike_Main,reduction_method = c( "tSNE"),cell_size = 1,label_cell_groups = FALSE)+
     theme(axis.text.x = element_text(face="bold",  size=12),
@@ -291,7 +291,7 @@
           legend.text = element_text(colour="black", size=12,face="bold"),
           aspect.ratio=1  #square plot
     )+labs(title="EMT-like Cells")+ labs(fill = "log10(Exp)")
-  
+
   # NSUN_Main
   plot_cells(cds, genes= NSUN_Main,reduction_method = c( "tSNE"),cell_size = 1,label_cell_groups = FALSE)+
     theme(axis.text.x = element_text(face="bold",  size=12),
@@ -308,23 +308,23 @@
 
   # Group cells into clusters
     cds = cluster_cells(cds, resolution=1e-5,reduction_method = c( "tSNE"),k=25)
-    
+
     png(paste0(FilesName,RVersion,"/",RVersion,"_","myCAF_clusterK5.png"), width = 640, height = 360) # ?]?w???X????
     plot_cells(cds,reduction_method = c( "tSNE"),label_cell_groups = FALSE,cell_size = 1)
-    dev.off() 
-    
+    dev.off()
+
     plot_cells(cds,reduction_method = c( "tSNE"),cell_size = 2,group_label_size = 5)
     plot_cells(cds,reduction_method = c( "tSNE"),group_cells_by="partition",cell_size = 2,group_label_size = 5)
     plot_cells(cds,reduction_method = c( "tSNE"),group_cells_by="cluster",cell_size = 2,group_label_size = 5)
 
-    
-#### UMAP ####    
+
+#### UMAP ####
   cds <- reduce_dimension(cds)
-  
+
   png(paste0(FilesName,RVersion,"/",RVersion,"_","UMAP.png"), width = 640, height = 360) # ?]?w???X????
   plot_cells(cds)
-  dev.off() 
-  
+  dev.off()
+
   # plot_cells(cds, genes=Main)
   plot_cells(cds, genes=iCAF_Main)
   plot_cells(cds, genes=apCAF_Main)
@@ -332,25 +332,25 @@
 
   png(paste0(FilesName,RVersion,"/",RVersion,"_","UMAP_iCAF.png"), width = 640, height = 360) # ?]?w???X????
   plot_cells(cds, genes=iCAF_Main)
-  dev.off() 
-  
+  dev.off()
+
   png(paste0(FilesName,RVersion,"/",RVersion,"_","UMAP_apCAF.png"), width = 640, height = 360) # ?]?w???X????
   plot_cells(cds, genes=apCAF_Main)
-  dev.off() 
-  
+  dev.off()
+
   png(paste0(FilesName,RVersion,"/",RVersion,"_","UMAP_myCAF.png"), width = 640, height = 360) # ?]?w???X????
   plot_cells(cds, genes=myCAF_Main)
-  dev.off() 
-  
+  dev.off()
+
   # Group cells into clusters
   cds = cluster_cells(cds, resolution=1e-5,k=25)
-  
+
   png(paste0(FilesName,RVersion,"/",RVersion,"_","UMAP_clusterK6.png"), width = 640, height = 360) # ?]?w???X????
   plot_cells(cds,label_cell_groups = FALSE)
   dev.off() # ???????X????
-  
+
   plot_cells(cds,cell_size = 1.5,group_label_size = 4)
-  
+
   # Cell type
   plot_cells(cds, genes=All_Macrophages_Main)+labs(title="Macrophages")
   plot_cells(cds, genes=All_Myeloid_Main)+labs(title="Myeloid")
@@ -364,17 +364,17 @@
   plot_cells(cds, genes=All_Acinar_Main)+labs(title="Acinar Cells")
   plot_cells(cds, genes=All_Perivascular_Main)+labs(title="Perivascular Cells")
   plot_cells(cds, genes=All_EMTlike_Main)+labs(title="EMTlike Cells")
-  
+
 
 #### Find marker genes expressed by each cluster ####
   plot_cells(cds,cell_size = 2,group_label_size = 5)
-  
+
   cds2 <- cds
   cds2 = cluster_cells(cds2, reduction_method = c( "tSNE"), resolution=1e-5,k=25)
-  
+
   plot_cells(cds2, reduction_method = c( "tSNE"),group_cells_by="partition",cell_size = 2,group_label_size = 5,label_cell_groups = FALSE)
   plot_cells(cds2, reduction_method = c( "tSNE"),group_cells_by="partition",cell_size = 2,group_label_size = 5)
-  
+
   plot_cells(cds2, reduction_method = c( "tSNE"),group_cells_by="cluster",cell_size = 2,group_label_size = 5,label_cell_groups = FALSE)+
   theme(axis.text.x = element_text(face="bold",  size=12),
         axis.text.y = element_text(face="bold",size=12),
@@ -385,7 +385,7 @@
         legend.text = element_text(colour="black", size=12,face="bold"),
         aspect.ratio=1  #square plot
   )+labs(title="PDAC (fibroblast-enriched)")+ labs(fill = "log10(Exp)")
-  
+
   plot_cells(cds2, reduction_method = c( "tSNE"),group_cells_by="cluster",cell_size = 2,group_label_size = 5)+
   theme(axis.text.x = element_text(face="bold",  size=12),
         axis.text.y = element_text(face="bold",size=12),
@@ -396,74 +396,74 @@
         legend.text = element_text(colour="black", size=12,face="bold"),
         aspect.ratio=1  #square plot
   )+labs(title="PDAC (fibroblast-enriched)")+ labs(fill = "log10(Exp)")
-  
-  marker_test_res2 <- top_markers(cds2, group_cells_by="cluster", reduction_method = c( "tSNE"), 
+
+  marker_test_res2 <- top_markers(cds2, group_cells_by="cluster", reduction_method = c( "tSNE"),
                                  reference_cells=1000, cores=8)
-  
+
   top_specific_markers2 <- marker_test_res2 %>%
     filter(fraction_expressing >= 0.10) %>%
     group_by(cell_group) %>%
     top_n(1, pseudo_R2)
-  
+
   top_specific_marker_ids2 <- unique(top_specific_markers2 %>% pull(gene_id))
-  
+
   plot_genes_by_group(cds2, reduction_method = c( "tSNE"),
                       top_specific_marker_ids2,
                       group_cells_by="cluster",
                       ordering_type="maximal_on_diag",
                       max.size=3)
-  
+
   top_specific_markers2 <- marker_test_res2 %>%
     filter(fraction_expressing >= 0.10) %>%
     group_by(cell_group) %>%
     top_n(10, pseudo_R2)
-  
+
   top_specific_marker_ids2 <- unique(top_specific_markers2 %>% pull(gene_id))
-  
+
   plot_genes_by_group(cds2, reduction_method = c( "tSNE"),
                       top_specific_marker_ids2,
                       group_cells_by="cluster",
                       ordering_type="cluster_row_col",
                       max.size=3)
-  
+
   plot_cells(cds2, reduction_method = c( "tSNE"),group_cells_by="cluster",cell_size = 2,group_label_size = 5,label_cell_groups = FALSE)
   plot_cells(cds2, reduction_method = c( "tSNE"),group_cells_by="cluster",cell_size = 2,group_label_size = 5)
-  
+
   plot_cells(cds2, color_cells_by="cluster",cell_size = 2,group_label_size = 5)
   colData(cds2)$assigned_cell_type <- as.character(clusters(cds2, reduction_method = c( "tSNE"))[colnames(cds2)])
   colData(cds2)$assigned_cell_type <- dplyr::recode(colData(cds2, reduction_method = c( "tSNE"))$assigned_cell_type,
                                                           "1"="01.Macrophages",
-                                                          "11"="01.Macrophages", 
-                                                    
+                                                          "11"="01.Macrophages",
+
                                                           "2"="02.Myeloid Cells",
-                                                          "12"="02.Myeloid Cells",                                                  
+                                                          "12"="02.Myeloid Cells",
                                                           "16"="02.Myeloid Cells",
-                                                    
+
                                                           "8"="03.B cells",
-                                                    
+
                                                           "3"="04.Neutrophils",
-                                                    
+
                                                           "5"="05.Fibroblasts",
-    
+
                                                           "6"="06.T and NK Cells",
-                                                    
+
                                                           "4"="07.Ductal cell 1",
-                                                    
+
                                                           "10"="08.Endothelial Cells",
-                                                    
+
                                                           "9"="09.Dendritic Cells",
                                                           "12"="09.Dendritic Cells",
-                                                    
+
   #                                                        "15"="10.Acinar Cells",
-  
+
                                                           "13"="11.Perivascular Cells",
-                                                                                                           
+
                                                           "7"="12.EMT-like Cells"
   )
-  
-  
+
+
   cds2@colData@listData[["PDACAll"]] <- cds2@colData@listData[["assigned_cell_type"]]
-  
+
   plot_cells(cds2, group_cells_by="cluster", color_cells_by="PDACAll",
              reduction_method = c( "tSNE"),cell_size = 2,group_label_size = 5,label_cell_groups = FALSE)+
     theme(axis.text.x = element_text(face="bold",  size=10),
@@ -475,32 +475,32 @@
           legend.text = element_text(colour="black", size=12,face="bold"),
           aspect.ratio=1  #square plot
     )+labs(title="PDAC All")+ labs(fill = "log10(Exp)")
-  
+
   plot_cells(cds2, group_cells_by="cluster", color_cells_by="PDACAll",
              reduction_method = c( "tSNE"),cell_size = 2,group_label_size = 5)
-    
 
-#### Isolate_subset #### 
+
+#### Isolate_subset ####
   cds_subsetV2Ori <- choose_cells(cds2,reduction_method = c( "tSNE"),
                               clear_cds = FALSE,
                               return_list = FALSE)
   cds_subsetV2 <- cds_subsetV2Ori
-  
+
   cds_subsetV2 = cluster_cells(cds_subsetV2, resolution=1e-2,K=2)
   # plot_cells(cds_subsetV2, color_cells_by="cluster",reduction_method = c( "tSNE"),cell_size = 2,group_label_size = 5)
-  
+
   plot_cells(cds_subsetV2, color_cells_by="cluster",reduction_method = c( "tSNE"),cell_size = 2,label_cell_groups = FALSE)
   plot_cells(cds_subsetV2, color_cells_by="cluster",reduction_method = c( "tSNE"),cell_size = 2,group_label_size = 5)
-  
+
   plot_cells(cds_subsetV2, color_cells_by="cluster",cell_size = 2,group_label_size = 5,label_cell_groups = FALSE)
   plot_cells(cds_subsetV2, color_cells_by="cluster",cell_size = 2,group_label_size = 5)
   colData(cds_subsetV2)$assigned_cell_type <- as.character(clusters(cds_subsetV2)[colnames(cds_subsetV2)])
   colData(cds_subsetV2)$assigned_cell_type <- dplyr::recode(colData(cds_subsetV2)$assigned_cell_type,
                                                           "1"="10.Acinar Cells"
   )
-  
+
   cds_subsetV2@colData@listData[["Acinar"]] <- cds_subsetV2@colData@listData[["assigned_cell_type"]]
-  
+
   plot_cells(cds_subsetV2, group_cells_by="cluster", color_cells_by="assigned_cell_type",label_cell_groups = FALSE,
              reduction_method = c( "tSNE"),cell_size = 2,group_label_size = 5)
 
@@ -517,17 +517,17 @@
           legend.text = element_text(colour="black", size=12,face="bold"),
           aspect.ratio=1  #square plot
     )+labs(title="PDAC All")+ labs(fill = "log10(Exp)")
-  
-  
+
+
   plot_cells(cds2, group_cells_by="cluster", color_cells_by="assigned_cell_type",
              reduction_method = c( "tSNE"),cell_size = 2,group_label_size = 5)
-  
-  
-  
+
+
+
   # NSUN_Main
   cds2_Violin_NSUN <- cds2
   cds2_Violin_NSUN <- cds2_Violin_NSUN[rowData(cds2_Violin_NSUN)$gene_short_name %in% NSUN_Main,]
-  
+
   plot_genes_violin(cds2_Violin_NSUN, group_cells_by="assigned_cell_type",  log_scale = FALSE, ncol=3) +
     theme(axis.text.x=element_text(angle=65, hjust=1))+
     theme(axis.text.x = element_text(face="bold",  size=10),
@@ -539,4 +539,4 @@
           legend.text = element_text(colour="black", size=12,face="bold"),
           aspect.ratio=1  #square plot
     )+labs(title="NSUN")+ labs(fill = "log10(Exp)")
-  
+
